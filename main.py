@@ -1,14 +1,13 @@
 import requests
 import time
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # Configuration
-LESSON_ID = None
+LESSON_ID = "694773"
 BEARER_TOKEN = None
 
-POLL_INTERVAL = 0.2  # 200ms between requests
-START_BEFORE_SECONDS = 5  # Start polling 5 seconds before enrollment opens
+MAX_RETRY_DURATION = 5  # Try for at most 5 seconds
 
 
 def get_lesson_info(lesson_id):
@@ -23,7 +22,7 @@ def get_lesson_info(lesson_id):
     return data["data"]
 
 
-def enroll_in_lesson(lesson_id, bearer_token):
+def enroll_in_lesson(lesson_id, bearer_token, attempt_num):
     """Attempt to enroll in a lesson."""
     url = f"https://schalter.asvz.ch/tn-api/api/Lessons/{lesson_id}/Enrollment"
 
@@ -42,24 +41,86 @@ def enroll_in_lesson(lesson_id, bearer_token):
     }
 
     data = {}
-    response = requests.post(url, headers=headers, json=data)
-    return response
+    request_time = get_timestamp()
+    print(f"[{request_time}] Attempt {attempt_num}: Sent")
+
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response_time = get_timestamp()
+
+        print(f"[{response_time}] Attempt {attempt_num}: Status {response.status_code}")
+
+        if response.status_code == 201:
+            print(f"[{response_time}] ✓ SUCCESS! Enrolled in lesson!")
+            print(f"Response: {response.text}")
+            return True
+        else:
+            try:
+                error_data = response.json()
+                if "errors" in error_data and error_data["errors"]:
+                    print(f"  → {error_data['errors'][0]['message']}")
+            except (ValueError, KeyError):
+                print(f"  → Response: {response.text}")
+            return False
+    except Exception as e:
+        print(f"[{get_timestamp()}] Attempt {attempt_num}: Error - {e}")
+        return False
 
 
-def main():
-    # Get lesson ID
+def get_timestamp():
+    """Get current timestamp as a formatted string."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+
+def log_with_timestamp(message):
+    """Print a message with timestamp prefix."""
+    print(f"[{get_timestamp()}] {message}")
+
+
+def get_config():
+    """Get lesson ID and bearer token from config, environment, or user input."""
     lesson_id = LESSON_ID
     if lesson_id is None:
         lesson_id = input("Enter lesson ID: ").strip()
-    
-    # Get bearer token
-    bearer_token = BEARER_TOKEN
-    if bearer_token is None:
-        bearer_token = os.environ.get("ASVZ_TOKEN")
+
+    bearer_token = BEARER_TOKEN or os.environ.get("ASVZ_TOKEN")
     if bearer_token is None:
         bearer_token = input("Enter bearer token: ").strip()
-    
-    print(f"\nFetching lesson info for ID: {lesson_id}")
+
+    return lesson_id, bearer_token
+
+
+def display_lesson_info(lesson_info):
+    """Display lesson information to the user."""
+    print(f"Sport: {lesson_info['sportName']}")
+    print(f"Title: {lesson_info['title']}")
+    print(f"Enrollment opens: {lesson_info['enrollmentFrom']}")
+    print(
+        f"Participants: {lesson_info['participantCount']}/{lesson_info['participantsMax']}\n"
+    )
+
+
+def retry_enrollment(lesson_id, bearer_token, max_duration):
+    """Retry enrollment attempts until successful or max duration exceeded."""
+    start_time = time.time()
+    end_time = start_time + max_duration
+
+    log_with_timestamp(f"Starting enrollment attempts (max {max_duration}s)...\n")
+
+    attempt = 0
+    while time.time() < end_time:
+        attempt += 1
+        if enroll_in_lesson(lesson_id, bearer_token, attempt):
+            return True
+
+    return False
+
+
+def main():
+    # Get configuration
+    lesson_id, bearer_token = get_config()
+
+    log_with_timestamp(f"Fetching lesson info for ID: {lesson_id}")
     lesson_info = get_lesson_info(lesson_id)
 
     enrollment_from_str = lesson_info["enrollmentFrom"]
@@ -67,56 +128,26 @@ def main():
         timezone.utc
     )
 
-    print(f"Sport: {lesson_info['sportName']}")
-    print(f"Title: {lesson_info['title']}")
-    print(f"Enrollment opens: {enrollment_from_str}")
-    print(
-        f"Participants: {lesson_info['participantCount']}/{lesson_info['participantsMax']}"
-    )
+    display_lesson_info(lesson_info)
 
-    # Calculate when to start polling
+    # Wait until enrollment opens
     now = datetime.now(timezone.utc)
-    start_polling_at = enrollment_from_utc - timedelta(seconds=START_BEFORE_SECONDS)
-    
-    wait_time = (start_polling_at - now).total_seconds()
+    wait_time = (enrollment_from_utc - now).total_seconds()
 
     if wait_time > 0:
-        print(f"\nWaiting {wait_time:.1f} seconds until polling starts...")
+        log_with_timestamp(
+            f"\nWaiting {wait_time:.1f} seconds until enrollment opens..."
+        )
         time.sleep(wait_time)
     else:
-        print(
-            f"\nEnrollment window already open or opening soon, starting immediately..."
-        )
+        log_with_timestamp("\nEnrollment window already open, starting immediately...")
 
-    print(f"\nStarting enrollment attempts (every {int(POLL_INTERVAL * 1000)}ms)...")
-    attempt = 0
+    enrollment_success = retry_enrollment(lesson_id, bearer_token, MAX_RETRY_DURATION)
 
-    while True:
-        attempt += 1
-        response = enroll_in_lesson(lesson_id, bearer_token)
-
-        print(f"Attempt {attempt}: Status {response.status_code}")
-
-        if response.status_code == 201:
-            print("\n✓ SUCCESS! Enrolled in lesson!")
-            print(f"Response: {response.text}")
-            break
-        elif response.status_code == 422:
-            # Still too early or validation error
-            try:
-                error_data = response.json()
-                if "errors" in error_data and error_data["errors"]:
-                    print(f"  → {error_data['errors'][0]['message']}")
-            except:
-                print(f"  → Response: {response.text}")
-        else:
-            print(f"  → Response: {response.text}")
-            # Consider stopping after too many failed attempts with unexpected errors
-            if attempt > 100:
-                print("\nToo many attempts with errors. Stopping.")
-                break
-
-        time.sleep(POLL_INTERVAL)
+    if enrollment_success:
+        log_with_timestamp("\nEnrollment successful!")
+    else:
+        log_with_timestamp(f"\nFailed to enroll after {MAX_RETRY_DURATION}s.")
 
 
 if __name__ == "__main__":
