@@ -1,0 +1,71 @@
+{
+  "data": {
+    "eventId": 687636,
+    "type": 5,
+    "enrollmentEnabled": true,
+    "enrollmentFrom": "2025-10-23T20:30:00+02:00",
+    "lotteryEnrollmentFrom": null,
+    "lotteryEnrollmentTo": null,
+    "lotteryParticipantsCount": null,
+    "enrollmentUntil": "2025-10-24T20:30:00+02:00",
+    "cancelationUntil": "2025-10-24T19:30:00+02:00",
+    "starts": "2025-10-24T20:30:00+02:00",
+    "ends": "2025-10-24T22:15:00+02:00",
+    "cancellationDate": null,
+    "cancellationReason": null,
+    "participantsMin": null,
+    "participantsMax": 36,
+    "participantCount": 36,
+    "instructors": [
+      {
+        "asvzId": 27140,
+        "name": "Daniel Steinmann"
+      }
+    ],
+    "facilities": [
+      {
+        "facilityId": 188950,
+        "nameShort": "SC GLO",
+        "name": "Sport Center Gloriarank",
+        "url": "https://asvz.ch/anlage/490960-sport-center-gloriarank"
+      }
+    ],
+    "rooms": [
+      "Arena 1"
+    ],
+    "requiredSkills": [],
+    "subLessons": [],
+    "isLiveStream": false,
+    "id": 696046,
+    "baseType": 3,
+    "status": 2,
+    "number": "2025-L-696046",
+    "sportId": 62,
+    "sportName": "Standard/Latin Tänze",
+    "sportUrl": "https://asvz.ch/standardlatin-taenze",
+    "title": "Training",
+    "location": null,
+    "webRegistrationType": 6,
+    "meetingPointInfo": null,
+    "meetingPointCoordinates": null,
+    "tlCommentActive": false,
+    "tlCommentActiveInfo": false,
+    "tlComment": null,
+    "language": {
+      "id": "117b1004-2137-4b60-8c63-34db3c5c61d6",
+      "code": "de",
+      "name": "German"
+    },
+    "languageInfo": "Deutsch",
+    "levelId": 2,
+    "levelInfo": "Einsteiger + Mittlere",
+    "levelE": false,
+    "levelM": false,
+    "levelF": false,
+    "details": "# Besonderes\r\nBitte keine Schuhe mit hohen Bleistiftabsätzen!",
+    "detailsAddition": "# Übergreifendes zum ASVZ-Sportbetrieb\r\n## Hausordnung und Fairplay\r\nDer ASVZ mit seinen 80\\'000 Membern funktioniert nur, wenn Fairplay-Grundsätze mitgetragen und Spielregeln eingehalten werden. Nachfolgendes Verhalten hat erst eine Erinnerung, dann eine Verwarnung und beim dritten Mal eine konsequente Sperrung von acht Tagen für den gesamten ASVZ-Sportbetrieb zur Folge:\r\n\r\n•\tOhne gültige Einschreibung am geleiteten Sportbetrieb teilnehmen\r\n•\tEinschreiben und nicht im entsprechenden Angebot erscheinen \r\n\r\nDie komplette Hausordnung sowie alle Fairplay-Grundsätze und Spielregeln finden sich hier [hier](https://asvz.ch/59414-hausordnung-und-fairplay) ([English](https://asvz.ch/en/node/531289)).\r\n\r\n## Member’s Manual zum ASVZ\r\n[Hier](https://asvz.ch/59666-willkommen-im-asvz) werden die grundlegenden Informationen zum Sportbetrieb und zum Sporttreiben im ASVZ gegeben, wie bspw. Informationen zum Einschreiben und Anmelden.",
+    "tlToolUrl": "/#/einsatz/detail/696046",
+    "externeAnmeldung": false,
+    "changeDate": "2025-10-23T20:30:52.217+02:00"
+  }
+}

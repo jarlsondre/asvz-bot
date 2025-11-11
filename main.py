@@ -1,13 +1,15 @@
 import requests
 import time
 import os
+import threading
 from datetime import datetime, timezone
 
 # Configuration
-LESSON_ID = "694773"
+LESSON_ID = "696048"
 BEARER_TOKEN = None
 
 MAX_RETRY_DURATION = 5  # Try for at most 5 seconds
+PRE_REQUEST_OFFSET_MS = 250  # Send pre-request this many ms before enrollment opens
 
 
 def get_lesson_info(lesson_id):
@@ -100,6 +102,16 @@ def display_lesson_info(lesson_info):
     )
 
 
+def send_pre_request(lesson_id, bearer_token):
+    """
+    Send a pre-emptive enrollment request in a separate thread.
+    This request is sent slightly before the enrollment window opens
+    to account for network delay.
+    """
+    log_with_timestamp("PRE-REQUEST: Sending early enrollment attempt...")
+    enroll_in_lesson(lesson_id, bearer_token, attempt_num=0)
+
+
 def retry_enrollment(lesson_id, bearer_token, max_duration):
     """Retry enrollment attempts until successful or max duration exceeded."""
     start_time = time.time()
@@ -138,9 +150,36 @@ def main():
         log_with_timestamp(
             f"\nWaiting {wait_time:.1f} seconds until enrollment opens..."
         )
-        time.sleep(wait_time)
+
+        # Calculate when to send pre-request
+        pre_request_offset_seconds = PRE_REQUEST_OFFSET_MS / 1000.0
+        wait_until_pre_request = wait_time - pre_request_offset_seconds
+
+        if wait_until_pre_request > 0:
+            # Wait until it's time for pre-request
+            time.sleep(wait_until_pre_request)
+
+            # Launch pre-request in separate thread
+            log_with_timestamp(
+                f"Launching pre-request {PRE_REQUEST_OFFSET_MS}ms early..."
+            )
+            pre_request_thread = threading.Thread(
+                target=send_pre_request, args=(lesson_id, bearer_token), daemon=True
+            )
+            pre_request_thread.start()
+
+            # Wait the remaining time until official enrollment opening
+            time.sleep(pre_request_offset_seconds)
+        else:
+            # Not enough time for pre-request, just wait
+            log_with_timestamp(
+                "Not enough time for pre-request, waiting until enrollment opens..."
+            )
+            time.sleep(wait_time)
     else:
-        log_with_timestamp("\nEnrollment window already open, starting immediately...")
+        log_with_timestamp(
+            "\nEnrollment window already open, skipping pre-request and starting immediately..."
+        )
 
     enrollment_success = retry_enrollment(lesson_id, bearer_token, MAX_RETRY_DURATION)
 
